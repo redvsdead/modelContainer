@@ -271,16 +271,20 @@ public:
 			}
 		}
 	}
+
+	//печать текущей модели
 	void modelPrint(deque<Model>::iterator x)
 	{
 		cout << *x;
 	}
 
+	//печать всех моделей
 	void modelPrintPart()
 	{
 		copy(helpDeque.begin(), helpDeque.end(), ostream_iterator<Model>(cout, ""));
 	}
 
+	//удаление заданной модели
 	void modelDataRemove(deque<Model>::iterator x)
 	{
 		modelDeque.erase(x);
@@ -291,6 +295,7 @@ public:
 		cout << endl;
 	}
 
+	//изменение информации о заданной модели
 	void modelDataChange(deque<Model>::iterator x)
 	{
 		istream_iterator<Model> is(cin);
@@ -385,8 +390,10 @@ void subMenu()
 
 int main()
 {
-	bool control = true, _control2 = true;
+	bool menuControl = true;	//для основного меню
+	bool excerptControl = true;	//для подменю с выборками
 	modelDataList modelList;
+	//от code до amount нужно для поиска модели 
 	int code;
 	string mark;
 	string procType;
@@ -396,10 +403,11 @@ int main()
 	int gcardCap;
 	int price;
 	int amount;
+
 	deque<Model>::iterator x;
-	char answer;
-	string fileName;
-	while (control)
+	char answer;	//ответ юзера
+	string fileName;	//для всяких файлов, откуда или куда загружаем модели
+	while (menuControl)
 	{
 		mainMenu();
 		cin >> answer;
@@ -494,7 +502,7 @@ int main()
 			break;
 		case '4':
 			if (!modelList.modelDeque.empty()) {
-				while (_control2)
+				while (excerptControl)
 				{
 					subMenu();
 					cin >> answer;
@@ -533,7 +541,7 @@ int main()
 					case '0':
 						cout << endl;
 						cout << endl;
-						_control2 = false;
+						excerptControl = false;
 						break;
 					}
 					//сохраняем в отдельный файл выборку, потому что в консоли неудобно читать
@@ -549,7 +557,7 @@ int main()
 				cout << "Warning: container is empty" << endl;
 			break;
 		case '0':
-			control = false;
+			menuControl = false;
 			break;
 		}
 	}
