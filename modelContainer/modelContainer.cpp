@@ -228,6 +228,7 @@ struct isHDDCap
 	}
 };
 
+
 ///////////////////////////////////////////////////////
 
 //контейнер для хранения информации о моделях
@@ -372,7 +373,8 @@ void mainMenu()
 	cout << "Add model - 1" << endl;				//добавление модели
 	cout << "Change model information - 2" << endl;	//изменение модели
 	cout << "Remove model - 3" << endl;				//удаление модели
-	cout << "Get model excerpt - 4" << endl;		//выборка моделей по типу проц, озу, видеокарте и жд (основная задача)
+	cout << "Get model excerpt (linear) - 4" << endl;		//выборка моделей по типу проц, озу, видеокарте и жд (основная задача)
+	cout << "Get model excerpt (binary) - 5" << endl;
 	cout << "Exit - 0" << endl;
 	cout << "Your choice is: ";
 }
@@ -535,6 +537,79 @@ int main()
 						cout << endl;
 						cout << "Enter HDD capacity: "; cin >> hddCap;
 						copy_if(modelList.modelDeque.begin(), modelList.modelDeque.end(), back_inserter(modelList.helpDeque), isHDDCap(hddCap));
+						cout << endl;
+						modelList.modelPrintPart();
+						break;
+					case '0':
+						cout << endl;
+						cout << endl;
+						excerptControl = false;
+						break;
+					}
+					//сохраняем в отдельный файл выборку, потому что в консоли неудобно читать
+					cout << "Enter file name: ";
+					cin >> fileName;
+					fileName = fileName + ".txt";
+					ofstream _file;
+					_file.open(fileName);
+					modelList.loadResultTo(_file);
+				}
+			}
+			else
+				cout << "Warning: container is empty" << endl;
+			break;
+		case '5':
+			if (!modelList.modelDeque.empty()) {
+				deque<Model> sortDeque = modelList.modelDeque;	//чтобы не менять порядок элементов в исходной очереди
+				Model ram;
+				while (excerptControl)
+				{
+					subMenu();
+					cin >> answer;
+					cin.get();
+					switch (answer)
+					{
+					case '1':
+						cout << endl;
+						cout << "Add RAM capacity: "; cin >> ramCap;
+						sort(sortDeque.begin(), sortDeque.end(), [](const Model& obj1, const Model& obj2) {
+							return obj1.ramCap > obj2.ramCap;
+						});
+						cout << endl;
+						ram.ramCap = ramCap;
+						x = lower_bound(sortDeque.begin(), sortDeque.end(), ram, [](const Model& m, const Model& ram) {
+							return m.ramCap < ram.ramCap;
+						});
+						while ((x != sortDeque.end()) && (x->ramCap == ramCap)) {
+							modelList.helpDeque.push_back(*x);
+							++x;
+						}
+						modelList.modelPrintPart();
+						break;
+					case '2':
+						cout << endl;
+						cout << "Add processor type: "; cin >> procType;
+						sort(sortDeque.begin(), sortDeque.end(), [](const Model& obj1, const Model& obj2) {
+							return obj1.procType > obj2.procType;
+						});
+						cout << endl;
+						modelList.modelPrintPart();
+						break;
+					case '3':
+						cout << endl;
+						cout << "Add graphics card capacity: "; cin >> gcardCap;
+						sort(sortDeque.begin(), sortDeque.end(), [](const Model& obj1, const Model& obj2) {
+							return obj1.gcardCap > obj2.gcardCap;
+						});
+						cout << endl;
+						modelList.modelPrintPart();
+						break;
+					case '4':
+						cout << endl;
+						cout << "Enter HDD capacity: "; cin >> hddCap;
+						sort(sortDeque.begin(), sortDeque.end(), [](const Model& obj1, const Model& obj2) {
+							return obj1.hddCap > obj2.hddCap;
+						});
 						cout << endl;
 						modelList.modelPrintPart();
 						break;
