@@ -561,7 +561,7 @@ int main()
 		case '5':
 			if (!modelList.modelDeque.empty()) {
 				deque<Model> sortDeque = modelList.modelDeque;	//чтобы не менять порядок элементов в исходной очереди
-				Model ram;
+				Model _model;
 				while (excerptControl)
 				{
 					subMenu();
@@ -576,8 +576,8 @@ int main()
 							return obj1.ramCap > obj2.ramCap;
 						});
 						cout << endl;
-						ram.ramCap = ramCap;
-						x = lower_bound(sortDeque.begin(), sortDeque.end(), ram, [](const Model& m, const Model& ram) {
+						_model.ramCap = ramCap;
+						x = lower_bound(sortDeque.begin(), sortDeque.end(), _model, [](const Model& m, const Model& ram) {
 							return m.ramCap < ram.ramCap;
 						});
 						while ((x != sortDeque.end()) && (x->ramCap == ramCap)) {
@@ -593,6 +593,14 @@ int main()
 							return obj1.procType > obj2.procType;
 						});
 						cout << endl;
+						_model.procType = procType;
+						x = lower_bound(sortDeque.begin(), sortDeque.end(), _model, [](const Model& m, const Model& proc) {
+							return m.procType < proc.procType;
+						});
+						while ((x != sortDeque.end()) && (x->procType == procType)) {
+							modelList.helpDeque.push_back(*x);
+							++x;
+						}
 						modelList.modelPrintPart();
 						break;
 					case '3':
@@ -602,6 +610,14 @@ int main()
 							return obj1.gcardCap > obj2.gcardCap;
 						});
 						cout << endl;
+						_model.gcardCap = gcardCap;
+						x = lower_bound(sortDeque.begin(), sortDeque.end(), _model, [](const Model& m, const Model& gcard) {
+							return m.gcardCap < gcard.gcardCap;
+						});
+						while ((x != sortDeque.end()) && (x->gcardCap == gcardCap)) {
+							modelList.helpDeque.push_back(*x);
+							++x;
+						}
 						modelList.modelPrintPart();
 						break;
 					case '4':
@@ -611,6 +627,14 @@ int main()
 							return obj1.hddCap > obj2.hddCap;
 						});
 						cout << endl;
+						_model.hddCap = hddCap;
+						x = lower_bound(sortDeque.begin(), sortDeque.end(), _model, [](const Model& m, const Model& hdd) {
+							return m.hddCap < hdd.hddCap;
+						});
+						while ((x != sortDeque.end()) && (x->hddCap == hddCap)) {
+							modelList.helpDeque.push_back(*x);
+							++x;
+						}
 						modelList.modelPrintPart();
 						break;
 					case '0':
