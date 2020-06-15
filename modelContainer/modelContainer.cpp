@@ -880,7 +880,6 @@ void userMenu(modelDataList& models)
 		case 1:
 		{
 			ostream_iterator<Model> os(cout, "\n");
-			cout << endl << "Содержимое контейнера:" << endl;
 			copy(models.modelDeque.begin(), models.modelDeque.end(), os);
 			break;
 		}
@@ -988,7 +987,8 @@ void workerMenu(modelDataList& modelList)
 			f.open(purchasingHistory);
 			history.loadPartFrom(f);
 			_file.close();
-			history.modelPrintPart();
+			ostream_iterator<Model> os(cout, "\n");
+			copy(history.modelDeque.begin(), history.modelDeque.end(), os);
 			history.clearList();
 		}
 
