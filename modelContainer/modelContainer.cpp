@@ -11,10 +11,21 @@
 
 using namespace std;
 
+string modelListHistory = "all_models.txt";
+string purchasingHistory = "purchase_history.txt";
+
 /*
 Модель компьютера характеризуется кодом и названием марки компьютера, типом процессора, частотой работы процессора, 
 объемом оперативной памяти, объемом жесткого диска, объемом памяти видеокарты, стоимостью компьютера и количеством экземпляров. 
 Поиск по типу процессора, объему ОЗУ, памяти видеокарты и объему жесткого диска.
+Реализовать виртуальный магазин ПК. Магазин должен иметь два режима работы
+— клиент и сотрудник (выбирается в меню). Сотрудник имеет возможность
+управления магазином: добавление, редактирование, удаление моделей ПК.
+Предусмотреть вывод списка моделей ПК с сортировкой и/или фильтрацией по
+выбранному полю. Пользователь имеет возможность поиска ПК по заданному
+критерию (любое поле, для полей типа цены и объема памяти — предусмотреть
+ввод диапазона) и покупки выбранного ПК. Предусмотреть хранение истории
+покупок и просмотр истории сотрудником.
 */
 
 struct Model
@@ -126,6 +137,7 @@ ostream& operator<<(ostream &os, const Model &model)
 	return os;
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////////////
 
 // ниже идут предикаты, передаваемые в find_if и copy_if в главной программе
@@ -228,6 +240,65 @@ struct isHDDCap
 	}
 };
 
+struct isMark
+{
+	string mark;
+
+	isMark(string _mark)
+	{
+		mark = _mark;
+	}
+	bool operator()(const Model &e)
+	{
+		return e.mark == mark;
+	}
+};
+
+struct isCode
+{
+	int code;
+
+	isCode(int _code)
+	{
+		code = _code;
+	}
+
+	bool operator()(const Model &e)
+	{
+		return e.code == code;
+	}
+};
+
+struct isPrice
+{
+	int price;
+
+	isPrice(int _price)
+	{
+		price = _price;
+	}
+
+	bool operator()(const Model &e)
+	{
+		return e.price == price;
+	}
+};
+
+struct isAmount
+{
+	int amount;
+
+	isAmount(int _amount)
+	{
+		amount = _amount;
+	}
+
+	bool operator()(const Model &e)
+	{
+		return e.amount == amount;
+	}
+};
+
 
 ///////////////////////////////////////////////////////
 
@@ -245,6 +316,7 @@ public:
 	//добавление моделей до тех пор, пока юзер не нажмет 0 (чтобы не приходилось каждый раз вручную вызывать add)
 	void addModelData()
 	{
+		ofstream _file;
 		istream_iterator<Model> is;
 		bool moreModels = true;
 		while (moreModels)
@@ -269,8 +341,18 @@ public:
 				cout << "Model was added successfully." << endl;
 				cout << endl;
 				cout << endl;
+				auto x = modelDeque.begin();
+				_file.open(modelListHistory, ios::app);
+				loadTo(_file, x);
+				_file.close();
 			}
 		}
+	}
+
+	void clearList() 
+	{
+		modelDeque.clear();
+		helpDeque.clear();
 	}
 
 	//печать текущей модели
@@ -358,8 +440,11 @@ public:
 	void loadPartFrom(ifstream& _file)
 	{
 		istream_iterator<Model> is(_file);
-		while (!_file.eof())
+		while (!_file.eof()) 
+		{
 			modelDeque.push_front(*is);
+			++is;
+		}
 		cout << endl;
 		cout << endl;
 		cout << "Loaded from file successfully." << endl;
@@ -368,34 +453,384 @@ public:
 	}
 };
 
-void mainMenu()
+int InputQuery(string str, int min, int max)
 {
-	cout << "Add model - 1" << endl;				//добавление модели
-	cout << "Change model information - 2" << endl;	//изменение модели
-	cout << "Remove model - 3" << endl;				//удаление модели
-	cout << "Get model excerpt (linear) - 4" << endl;		//выборка моделей по типу проц, озу, видеокарте и жд (основная задача)
+	int choise;
+	cout << str;
+	cin >> choise;
+	while (choise < min || choise > max) {
+		cout << "Warning: incorrect value, try again" << endl;
+		cin >> choise;
+	}
+	return choise;
+}
+
+string InputString(string message)
+{
+	string str;
+	do {
+		cout << message << endl;
+		cin >> str;
+	} while (str == "" && cout << "Warning: incorrect value, try again\n");
+	return str;
+}
+
+int mainMenu()
+{
+	cout << "Add model - 1" << endl;					//добавление модели
+	cout << "Change model information - 2" << endl;		//изменение модели
+	cout << "Remove model - 3" << endl;					//удаление модели
+	cout << "Get model excerpt (linear) - 4" << endl;	//выборка моделей по типу проц, озу, видеокарте и жд (основная задача)
 	cout << "Get model excerpt (binary) - 5" << endl;
 	cout << "Exit - 0" << endl;
 	cout << "Your choice is: ";
+	int ans = InputQuery("", 0, 5);
+	return ans;
 }
 
-void subMenu()
+int selectionMenu()
 {
-	cout << "Excerpt models by:" << endl;
+	cout << "Select models by:" << endl;
 	cout << "RAM capacity - 1" << endl;				//объем озу
 	cout << "Processor type - 2" << endl;			//тип процессора
 	cout << "Graphics card capacity - 3" << endl;	//объем видеокарты
 	cout << "HDD capacity - 4" << endl;				//объем жд
-	cout << "Exit excerpt menu - 0" << endl;
+	cout << "Mark - 5" << endl;						//марка
+	cout << "Code - 6" << endl;						//код
+	cout << "Price - 7" << endl;					//цена
+	cout << "Amount - 8" << endl;					//количество
+	cout << "Exit selecting menu - 0" << endl;
 	cout << "Your choice is: ";
+	int ans = InputQuery("", 0, 5);
+	return ans;
 }
 
-int main()
+int sortMenu()
 {
-	bool menuControl = true;	//для основного меню
-	bool excerptControl = true;	//для подменю с выборками
-	modelDataList modelList;
-	//от code до amount нужно для поиска модели 
+	cout << "Sort models by:" << endl;
+	cout << "RAM capacity - 1" << endl;				//объем озу
+	cout << "Processor type - 2" << endl;			//тип процессора
+	cout << "Graphics card capacity - 3" << endl;	//объем видеокарты
+	cout << "HDD capacity - 4" << endl;				//объем жд
+	cout << "Mark - 5" << endl;						//марка
+	cout << "Code - 6" << endl;						//код
+	cout << "Price - 7" << endl;					//цена
+	cout << "Amount - 8" << endl;					//количество
+	cout << "Exit sorting menu - 0" << endl;
+	cout << "Your choice is: ";
+	int ans = InputQuery("", 0, 5);
+	return ans;
+}
+
+void selection(modelDataList& models)
+{
+	int answer = selectionMenu();
+	deque<Model> res;
+	Model tmp;
+	int help1;
+	string help2;
+	switch (answer)
+	{
+	case 1:
+	{
+		cout << endl;
+		help1 = InputQuery("Add RAM capacity: ", 1, 100);
+		copy_if(models.modelDeque.begin(), models.modelDeque.end(), back_inserter(models.helpDeque), isRamCap(help1));
+		cout << endl;
+		models.modelPrintPart();
+		break;
+	}
+	case 2:
+	{
+		cout << endl;
+		help2 = InputString("Add Processor type: ");
+		copy_if(models.modelDeque.begin(), models.modelDeque.end(), back_inserter(models.helpDeque), isProcType(help2));
+		cout << endl;
+		models.modelPrintPart();
+		break;
+	}
+	case 3:
+	{
+		cout << endl;
+		help1 = InputQuery("Add Graphics card capacity: ", 1, 1000);
+		copy_if(models.modelDeque.begin(), models.modelDeque.end(), back_inserter(models.helpDeque), isGCardCap(help1));
+		cout << endl;
+		models.modelPrintPart();
+		break;
+	}
+	case 4:
+	{
+		cout << endl;
+		help1 = InputQuery("Add HDD capacity: ", 1, 1000);
+		copy_if(models.modelDeque.begin(), models.modelDeque.end(), back_inserter(models.helpDeque), isHDDCap(help1));
+		cout << endl;
+		models.modelPrintPart();
+		break;
+	}
+	case 5:
+	{
+		cout << endl;
+		help2 = InputString("Add Mark: ");
+		copy_if(models.modelDeque.begin(), models.modelDeque.end(), back_inserter(models.helpDeque), isMark(help2));
+		cout << endl;
+		models.modelPrintPart();
+		break;
+	}
+	case 6:
+	{
+		cout << endl;
+		help1 = InputQuery("Add Code: ", 1, 1000);
+		copy_if(models.modelDeque.begin(), models.modelDeque.end(), back_inserter(models.helpDeque), isCode(help1));
+		cout << endl;
+		models.modelPrintPart();
+		break;
+	}
+	case 7:
+	{
+		cout << endl;
+		help1 = InputQuery("Add Price: ", 10000, 100000);
+		copy_if(models.modelDeque.begin(), models.modelDeque.end(), back_inserter(models.helpDeque), isPrice(help1));
+		cout << endl;
+		models.modelPrintPart();
+		break;
+	}
+	case 8:
+	{
+		cout << endl;
+		help1 = InputQuery("Add Amount: ", 1, 1000);
+		copy_if(models.modelDeque.begin(), models.modelDeque.end(), back_inserter(models.helpDeque), isAmount(help1));
+		cout << endl;
+		models.modelPrintPart();
+		break;
+	}
+	}
+}
+
+bool sortDirection()
+{
+	int res = InputQuery("Select sorting direction:\n1Direct - 1 \n2Indirect - 2 \nYour choice is: ", 1, 2);
+	if (res == 1)
+		return true;
+	else
+		return false;
+}
+
+
+void sortSelection(deque<Model>& selection)
+{
+	int answer = sortMenu();
+	bool dir = sortDirection();
+	switch (answer)
+	{
+	case 1:
+	{
+		if (dir)
+		{
+			struct sortByRAMCap
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.ramCap < model2.ramCap;
+				}
+			} sortRAM;
+			sort(selection.begin(), selection.end(), sortRAM);
+		}
+		else
+		{
+			struct sortByRAMCap
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.ramCap > model2.ramCap;
+				}
+			} sortRAM;
+			sort(selection.begin(), selection.end(), sortRAM);
+		}
+	}
+	case 2:
+	{
+		if (dir)
+		{
+			struct sortByProcType
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.procType < model2.procType;
+				}
+			} sortPT;
+			sort(selection.begin(), selection.end(), sortPT);
+		}
+		else
+		{
+			struct sortByProcType
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.procType > model2.procType;
+				}
+			} sortPT;
+			sort(selection.begin(), selection.end(), sortPT);
+		}
+	}
+	case 3:
+	{
+		if (dir)
+		{
+			struct sortByGC
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.gcardCap < model2.gcardCap;
+				}
+			} sortGC;
+			sort(selection.begin(), selection.end(), sortGC);
+		}
+		else
+		{
+			struct sortByGC
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.gcardCap > model2.gcardCap;
+				}
+			} sortGC;
+			sort(selection.begin(), selection.end(), sortGC);
+		}
+	}
+	case 4:
+	{
+		if (dir)
+		{
+			struct sortByHDD
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.hddCap < model2.hddCap;
+				}
+			} sortHDD;
+			sort(selection.begin(), selection.end(), sortHDD);
+		}
+		else
+		{
+			struct sortByHDD
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.hddCap > model2.hddCap;
+				}
+			} sortHDD;
+			sort(selection.begin(), selection.end(), sortHDD);
+		}
+	}
+	case 5:
+	{
+		if (dir)
+		{
+			struct sortByMark
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.mark < model2.mark;
+				}
+			} sortMark;
+			sort(selection.begin(), selection.end(), sortMark);
+		}
+		else
+		{
+			struct sortByMark
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.mark > model2.mark;
+				}
+			} sortMark;
+			sort(selection.begin(), selection.end(), sortMark);
+		}
+	}
+	case 6:
+	{
+		if (dir)
+		{
+			struct sortByCode
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.code < model2.code;
+				}
+			} sortCode;
+			sort(selection.begin(), selection.end(), sortCode);
+		}
+		else
+		{
+			struct sortByCode
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.code > model2.code;
+				}
+			} sortCode;
+			sort(selection.begin(), selection.end(), sortCode);
+		}
+	}
+	case 7:
+	{
+		if (dir)
+		{
+			struct sortByPrice
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.price < model2.price;
+				}
+			} sortPrice;
+			sort(selection.begin(), selection.end(), sortPrice);
+		}
+		else
+		{
+			struct sortByPrice
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.price > model2.price;
+				}
+			} sortPrice;
+			sort(selection.begin(), selection.end(), sortPrice);
+		}
+	}
+	case 8:
+	{
+		if (dir)
+		{
+			struct sortByAmount
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.amount < model2.amount;
+				}
+			} sortAmount;
+			sort(selection.begin(), selection.end(), sortAmount);
+		}
+		else
+		{
+			struct sortByAmount
+			{
+				bool operator() (Model model1, Model model2)
+				{
+					return model1.amount > model2.amount;
+				}
+			} sortAmount;
+			sort(selection.begin(), selection.end(), sortAmount);
+		}
+	}
+	default:
+	{
+		break;
+	}
+	}
+}
+
+void purchaseModel(modelDataList& modelList) 
+{
 	int code;
 	string mark;
 	string procType;
@@ -406,62 +841,97 @@ int main()
 	int price;
 	int amount;
 
-	deque<Model>::iterator x;
-	char answer;	//ответ юзера
-	string fileName;	//для всяких файлов, откуда или куда загружаем модели
-	while (menuControl)
+	if (!modelList.modelDeque.empty()) {
+		cout << "Enter code: ";  cin >> code; cout << endl;
+		cout << "Enter mark: ";  cin >> mark; cout << endl;
+		cout << "Enter processor type: ";  cin >> procType; cout << endl;
+		cout << "Enter processor frequence: ";  cin >> procFreq; cout << endl;
+		cout << "Enter RAM capacity: ";  cin >> ramCap; cout << endl;
+		cout << "Enter HDD capacity: ";  cin >> hddCap; cout << endl;
+		cout << "Enter graphics card capacity: ";  cin >> gcardCap; cout << endl;
+		cout << "Enter price: ";  cin >> price; cout << endl;
+		cout << "Enter amount: ";  cin >> amount; cout << endl;
+		auto x = find_if(modelList.modelDeque.begin(), modelList.modelDeque.end(), searchModelData(code, mark, procType, procFreq,
+			ramCap, hddCap, gcardCap, price, amount));
+		int am = InputQuery("Add amount of models you want to purchase", 1, 1000);
+		if (x != modelList.modelDeque.end() && (*x).amount >= am){
+			int help = (*x).amount;
+			(*x).amount = am;
+			ofstream _file;
+			_file.open(purchasingHistory, ios::out);
+			modelList.loadTo(_file, x);
+			_file.close();
+			(*x).amount = help - am;
+		}
+		else {
+			cout << "Warning: could not purchase model";
+		}
+	}
+}
+
+void userMenu(modelDataList& models)
+{
+	deque<Model> result;
+	while (true)
 	{
-		mainMenu();
-		cin >> answer;
-		cin.get();
-		cout << endl;
-		cout << endl;
+		int answer = InputQuery("View all models - 1 \nSearch models by filter - 2 \nSort models - 3 \nPurchase a PC - 4 \nYour choice is: ", 0, 4);
 		switch (answer)
 		{
-		case '1':
+		case 1:
 		{
-			cout << endl;
-			cout << endl;
-			cout << "Add via keyboard - 1" << endl;
-			cout << "Load from file - 2" << endl;
-			cout << "Your choice is:";
-			cin >> answer;
-			cin.get();
-			if (answer == '1')
-			{
-				cout << "Enter file name: ";
-				cin >> fileName;
-				fileName = fileName + ".txt";
-				ofstream _file;
-				_file.open(fileName);
-				modelList.addModelData();
-				modelList.loadPartTo(_file);
-			}
-			else
-				if (answer == '2')
-				{
-					cout << endl;
-					cout << endl;
-					cout << "Enter file name: ";
-					cin >> fileName;
-					fileName = fileName + ".txt";
-					ifstream _file;
-					_file.open(fileName);
-					cout << endl;
-					cout << endl;
-					modelList.loadFrom(_file);
-					cout << endl;
-					cout << endl;
-					cout << "Models were added successfully." << endl;
-					cout << endl;
-					cout << endl;
-					if (modelList.modelDeque.empty()) {
-						cout << "empty" << endl;
-					}
-				}
+			ostream_iterator<Model> os(cout, "\n");
+			cout << endl << "Содержимое контейнера:" << endl;
+			copy(models.modelDeque.begin(), models.modelDeque.end(), os);
+			break;
 		}
-		break;
-		case '2':
+		case 2:
+		{
+			selection(models);
+			break;
+		}
+
+		case 3: 
+		{
+			result = models.modelDeque;
+			sortSelection(result);
+		}
+
+		case 4:
+		{
+			purchaseModel(models);
+			break;
+		}
+
+		case 0:
+			return;
+		}
+	}
+}
+
+void workerMenu(modelDataList& modelList)
+{
+	ofstream _file;
+	ifstream f;
+	int code;
+	string mark;
+	string procType;
+	int procFreq;
+	int ramCap;
+	int hddCap;
+	int gcardCap;
+	int price;
+	int amount;
+	modelDataList history;
+	while (true)
+	{
+		int answer = InputQuery("Add model - 1 \n Change model information - 2 \n Remove model - 3 \n View user history - 4 \n Exit - 0 \n Your choice is: ", 0, 4);
+		switch (answer)
+		{
+		case 1:
+			modelList.addModelData();
+			break;
+		case 2:
+		{
 			if (!modelList.modelDeque.empty()) {
 				cout << "Enter code: ";  cin >> code; cout << endl;
 				cout << "Enter mark: ";  cin >> mark; cout << endl;
@@ -472,17 +942,23 @@ int main()
 				cout << "Enter graphics card capacity: ";  cin >> gcardCap; cout << endl;
 				cout << "Enter price: ";  cin >> price; cout << endl;
 				cout << "Enter amount: ";  cin >> amount; cout << endl;
-				x = find_if(modelList.modelDeque.begin(), modelList.modelDeque.end(), searchModelData(code, mark, procType, procFreq,
+				auto x = find_if(modelList.modelDeque.begin(), modelList.modelDeque.end(), searchModelData(code, mark, procType, procFreq,
 					ramCap, hddCap, gcardCap, price, amount));
 				cout << endl;
 				cout << endl;
 				modelList.modelPrint(x);		//выводим юзеру то, что получилось в итоге
 				modelList.modelDataChange(x);	//меняем информацию
+				_file.open(modelListHistory, ios::app);
+				modelList.loadPartTo(_file);
+				_file.close();
 			}
 			else
-				cout << "Warning: container is empty" << endl;
+				cout << "Warning: list is empty" << endl;
 			break;
-		case '3':
+		}
+
+		case 3: 
+		{
 			if (!modelList.modelDeque.empty()) {
 				cout << "Enter code: ";  cin >> code; cout << endl;
 				cout << "Enter mark: ";  cin >> mark; cout << endl;
@@ -493,173 +969,68 @@ int main()
 				cout << "Enter graphics card capacity: ";  cin >> gcardCap; cout << endl;
 				cout << "Enter price: ";  cin >> price; cout << endl;
 				cout << "Enter amount: ";  cin >> amount; cout << endl;
-				x = find_if(modelList.modelDeque.begin(), modelList.modelDeque.end(), searchModelData(code, mark, procType, procFreq,
+				auto x = find_if(modelList.modelDeque.begin(), modelList.modelDeque.end(), searchModelData(code, mark, procType, procFreq,
 					ramCap, hddCap, gcardCap, price, amount));
 				cout << endl;
 				cout << endl;
 				modelList.modelDataRemove(x);	//удаляем из списка
+				_file.open(modelListHistory, ios::app);
+				modelList.loadPartTo(_file);
+				_file.close();
 			}
 			else
-				cout << "Warning: container is empty" << endl;
-			break;
-		case '4':
-			if (!modelList.modelDeque.empty()) {
-				while (excerptControl)
-				{
-					subMenu();
-					cin >> answer;
-					cin.get();
-					switch (answer)
-					{
-					case '1':
-						cout << endl;
-						cout << "Add RAM capacity: "; cin >> ramCap;
-						copy_if(modelList.modelDeque.begin(), modelList.modelDeque.end(), back_inserter(modelList.helpDeque), isRamCap(ramCap));
-						cout << endl;
-						modelList.modelPrintPart();
-						break;
-
-					case '2':
-						cout << endl;
-						cout << "Add processor type: "; cin >> procType;
-						copy_if(modelList.modelDeque.begin(), modelList.modelDeque.end(), back_inserter(modelList.helpDeque), isProcType(procType));
-						cout << endl;
-						modelList.modelPrintPart();
-						break;
-					case '3':
-						cout << endl;
-						cout << "Add graphics card capacity: "; cin >> gcardCap;
-						copy_if(modelList.modelDeque.begin(), modelList.modelDeque.end(), back_inserter(modelList.helpDeque), isGCardCap(gcardCap));
-						cout << endl;
-						modelList.modelPrintPart();
-						break;
-					case '4':
-						cout << endl;
-						cout << "Enter HDD capacity: "; cin >> hddCap;
-						copy_if(modelList.modelDeque.begin(), modelList.modelDeque.end(), back_inserter(modelList.helpDeque), isHDDCap(hddCap));
-						cout << endl;
-						modelList.modelPrintPart();
-						break;
-					case '0':
-						cout << endl;
-						cout << endl;
-						excerptControl = false;
-						break;
-					}
-					//сохраняем в отдельный файл выборку, потому что в консоли неудобно читать
-					cout << "Enter file name: ";
-					cin >> fileName;
-					fileName = fileName + ".txt";
-					ofstream _file;
-					_file.open(fileName);
-					modelList.loadResultTo(_file);
-				}
-			}
-			else
-				cout << "Warning: container is empty" << endl;
-			break;
-		case '5':
-			if (!modelList.modelDeque.empty()) {
-				deque<Model> sortDeque = modelList.modelDeque;	//чтобы не менять порядок элементов в исходной очереди
-				Model _model;
-				while (excerptControl)
-				{
-					subMenu();
-					cin >> answer;
-					cin.get();
-					switch (answer)
-					{
-					case '1':
-						cout << endl;
-						cout << "Add RAM capacity: "; cin >> ramCap;
-						sort(sortDeque.begin(), sortDeque.end(), [](const Model& obj1, const Model& obj2) {
-							return obj1.ramCap > obj2.ramCap;
-						});
-						cout << endl;
-						_model.ramCap = ramCap;
-						x = lower_bound(sortDeque.begin(), sortDeque.end(), _model, [](const Model& m, const Model& ram) {
-							return m.ramCap < ram.ramCap;
-						});
-						while ((x != sortDeque.end()) && (x->ramCap == ramCap)) {
-							modelList.helpDeque.push_back(*x);
-							++x;
-						}
-						modelList.modelPrintPart();
-						break;
-					case '2':
-						cout << endl;
-						cout << "Add processor type: "; cin >> procType;
-						sort(sortDeque.begin(), sortDeque.end(), [](const Model& obj1, const Model& obj2) {
-							return obj1.procType > obj2.procType;
-						});
-						cout << endl;
-						_model.procType = procType;
-						x = lower_bound(sortDeque.begin(), sortDeque.end(), _model, [](const Model& m, const Model& proc) {
-							return m.procType < proc.procType;
-						});
-						while ((x != sortDeque.end()) && (x->procType == procType)) {
-							modelList.helpDeque.push_back(*x);
-							++x;
-						}
-						modelList.modelPrintPart();
-						break;
-					case '3':
-						cout << endl;
-						cout << "Add graphics card capacity: "; cin >> gcardCap;
-						sort(sortDeque.begin(), sortDeque.end(), [](const Model& obj1, const Model& obj2) {
-							return obj1.gcardCap > obj2.gcardCap;
-						});
-						cout << endl;
-						_model.gcardCap = gcardCap;
-						x = lower_bound(sortDeque.begin(), sortDeque.end(), _model, [](const Model& m, const Model& gcard) {
-							return m.gcardCap < gcard.gcardCap;
-						});
-						while ((x != sortDeque.end()) && (x->gcardCap == gcardCap)) {
-							modelList.helpDeque.push_back(*x);
-							++x;
-						}
-						modelList.modelPrintPart();
-						break;
-					case '4':
-						cout << endl;
-						cout << "Enter HDD capacity: "; cin >> hddCap;
-						sort(sortDeque.begin(), sortDeque.end(), [](const Model& obj1, const Model& obj2) {
-							return obj1.hddCap > obj2.hddCap;
-						});
-						cout << endl;
-						_model.hddCap = hddCap;
-						x = lower_bound(sortDeque.begin(), sortDeque.end(), _model, [](const Model& m, const Model& hdd) {
-							return m.hddCap < hdd.hddCap;
-						});
-						while ((x != sortDeque.end()) && (x->hddCap == hddCap)) {
-							modelList.helpDeque.push_back(*x);
-							++x;
-						}
-						modelList.modelPrintPart();
-						break;
-					case '0':
-						cout << endl;
-						cout << endl;
-						excerptControl = false;
-						break;
-					}
-					//сохраняем в отдельный файл выборку, потому что в консоли неудобно читать
-					cout << "Enter file name: ";
-					cin >> fileName;
-					fileName = fileName + ".txt";
-					ofstream _file;
-					_file.open(fileName);
-					modelList.loadResultTo(_file);
-				}
-			}
-			else
-				cout << "Warning: container is empty" << endl;
-			break;
-		case '0':
-			menuControl = false;
+				cout << "Warning: list is empty" << endl;
 			break;
 		}
+
+		case 4:
+		{
+			f.open(purchasingHistory);
+			history.loadPartFrom(f);
+			_file.close();
+			history.modelPrintPart();
+			history.clearList();
+		}
+
+		case 0: 
+			return;
+		}
 	}
+}
+
+
+int main()
+{	bool menuControl = true;	//для основного меню
+	bool excerptControl = true;	//для подменю с выборками
+	modelDataList modelList;
+	ifstream _file;
+	char answer;			    //ответ юзера
+	_file.open(modelListHistory);
+	while (menuControl)
+	{
+		modelList.clearList();
+		int choise = InputQuery("Enter as:\nManager - 1\nUser - 2\nExit - 0\nYour choice is: ", 0, 2);
+		switch (choise)
+		{
+		case 1:
+		{
+			modelList.loadPartFrom(_file);
+			workerMenu(modelList);
+			break;
+		}
+		case 2:
+		{
+			modelList.loadPartFrom(_file);
+			userMenu(modelList);
+			break;
+		}
+		case 0: 
+		{
+			menuControl = false;
+		}
+		}
+	}
+	_file.close();
 }
 
 
