@@ -608,11 +608,7 @@ void selection(modelDataList& models)
 
 bool sortDirection()
 {
-	int res = InputQuery("Select sorting direction:\n1Direct - 1 \n2Indirect - 2 \nYour choice is: ", 1, 2);
-	if (res == 1)
-		return true;
-	else
-		return false;
+	return InputQuery("Select sorting direction:\n1Direct - 1 \n2Indirect - 2 \nYour choice is: ", 1, 2);
 }
 
 
